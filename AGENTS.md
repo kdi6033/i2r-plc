@@ -31,7 +31,7 @@ i2r IoT PLC 보드(**i2r-02, i2r-03, i2r-04**)의 아두이노 프로그램을 �
 | 항목 | 값 |
 |---|---|
 | MCU | ESP32 (ESP32-WROOM-32E, 플래시 8MB) |
-| USB | USB-C, USB-시리얼 칩 CH340C (i2r-03 부품표에서 확인) |
+| USB | USB-시리얼 칩 CH340C (세 보드 공통) |
 | 전원 | 위 표의 DC 전압을 보드 안에서 5V로 바꿈. USB로도 프로그램 업로드와 시험 가능 |
 | 통신 | Wi-Fi 2.4GHz (5GHz 안 됨), Bluetooth 4.2 / BLE |
 | 내장 LED | GPIO 2 |
