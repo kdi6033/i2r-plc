@@ -1,0 +1,38 @@
+# i2r IoT PLC (i2r-02 / i2r-03 / i2r-04)
+
+> ESP32 기반 i2r IoT PLC 보드 3종을 생성형 AI와 함께 아두이노로 프로그램하는 키트다. 사용자가 원하는 PLC 동작을 말로 설명하면 AI가 이 저장소의 핀 맵과 규칙을 읽고 코드를 작성한다.
+
+AI가 코드를 만들기 전에 꼭 알아야 할 요약:
+
+- 먼저 보드가 i2r-02, i2r-03, i2r-04 중 무엇인지 확인한다. 핀이 다르다.
+- 출력(릴레이, HIGH=켜짐): i2r-02/03 OUT1~4 = 26, 27, 32, 33 / i2r-04 OUT1~8 = 26, 27, 32, 33, 21, 22, 23, 25
+- 입력(HIGH=들어옴): i2r-02/03 IN1~4 = 16, 17, 18, 19 / i2r-04 IN1~8 = 18, 19, 4, 5, 12, 13, 14, 15
+- i2r-03 온습도 센서 AHT21: I2C SDA 21, SCL 22, 라이브러리 Adafruit AHTX0. 내장 LED는 세 보드 모두 GPIO 2.
+- i2r-02/04 입력은 무전압 접점이다. 입력 단자에 전압을 넣으면 고장 난다. i2r-03 입력은 COM을 쓰는 전압 입력이다.
+- i2r-04의 IN5(GPIO 12)는 부팅 설정 핀이라 전원을 켤 때 입력이 들어와 있으면 부팅이 안 될 수 있다. i2r-04는 GPIO 21, 22가 출력이라 I2C 기본 핀을 쓸 수 없다.
+- 출력은 setup()에서 LOW로 시작한다. delay()로 오래 멈추지 말고 millis()로 타이머를 만든다. 입력은 30~50ms 디바운스, 온도 제어는 히스테리시스.
+- 보드: ESP32 Dev Module, Flash 8MB, Partition "Huge APP (3MB No OTA/1MB SPIFFS)". FQBN esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app. Serial 115200.
+- Wi-Fi 비밀번호와 이메일은 secrets.h에 둔다. MQTT 메시지는 JSON, 명령 형식은 i2r 프로토콜을 따른다.
+- 사용자는 학생과 초보자다. 한국어로, 전체 코드를 주고, 한 번에 한 기능씩.
+
+## 핵심 문서
+
+- [AGENTS.md (AI용 전체 규칙과 핀 맵)](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/AGENTS.md): 코드를 만들기 전에 가장 먼저 읽을 파일
+- [i2r-02 보드](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/boards/i2r-02/README.md): 사양, 핀 맵
+- [i2r-03 보드](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/boards/i2r-03/README.md): 사양, 핀 맵, 입력 배선
+- [i2r-04 보드](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/boards/i2r-04/README.md): 사양, 핀 맵
+
+## 예제
+
+- [i2r-02 출력 차례로 켜기](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r02_output_blink/i2r02_output_blink.ino)
+- [i2r-02 입력을 출력으로](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r02_input_to_output/i2r02_input_to_output.ino)
+- [i2r-03 출력 차례로 켜기](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_output_blink/i2r03_output_blink.ino)
+- [i2r-03 입력을 출력으로](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_input_to_output/i2r03_input_to_output.ino)
+- [i2r-03 입력 타이머 5초](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_input_timer/i2r03_input_timer.ino)
+- [i2r-03 온도로 릴레이 제어](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_temp_relay/i2r03_temp_relay.ino)
+- [i2r-04 출력 차례로 켜기](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r04_output_blink/i2r04_output_blink.ino)
+- [i2r-04 입력을 출력으로](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r04_input_to_output/i2r04_input_to_output.ino)
+
+## Optional
+
+- [i2r 통신 프로토콜 (MQTT 토픽, JSON 명령)](https://raw.githubusercontent.com/kdi6033/i2r/main/README.md)

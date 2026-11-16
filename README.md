@@ -1,0 +1,123 @@
+# i2r IoT PLC AI 코딩 키트
+
+**말로 설명하면 AI가 PLC 프로그램을 작성합니다.**
+
+i2r IoT PLC 보드 **i2r-02, i2r-03, i2r-04**(ESP32)를 생성형 AI(Claude, ChatGPT, Gemini 등)와 함께 프로그램하는 저장소입니다.
+"입력 1이 들어오면 출력 1을 5초 켜 줘", "온도가 30도를 넘으면 환풍기를 켜 줘"처럼 원하는 동작을 말하면, AI가 이 저장소의 핀 맵과 규칙을 읽고 내 보드에 맞는 코드를 만들어 줍니다.
+
+## 보드
+
+| 보드 | 입력 | 출력(릴레이) | 센서 | 보드 문서 |
+|---|---|---|---|---|
+| **i2r-02** | 4채널 (무전압 접점) | 4채널 | 없음 | [boards/i2r-02](boards/i2r-02/README.md) |
+| **i2r-03** | 4채널 (전압 입력) | 4채널 | AHT21 온습도 | [boards/i2r-03](boards/i2r-03/README.md) |
+| **i2r-04** | 8채널 (무전압 접점) | 8채널 | 없음 | [boards/i2r-04](boards/i2r-04/README.md) |
+
+> ⚠️ **i2r-02, i2r-04의 입력은 무전압 접점입니다.** 입력 단자에 따로 전압을 넣으면 보드가 고장 납니다.
+> ⚠️ 릴레이에 220V 장치를 연결할 때는 전원을 끄고 배선하세요. 처음에는 장치를 연결하지 않고 릴레이 소리와 LED로 시험하는 것이 안전합니다.
+
+## AI와 함께 프로그램하기
+
+이 저장소에는 **AI가 읽는 안내서**([AGENTS.md](AGENTS.md))가 들어 있습니다. 보드별 핀, 지켜야 할 규칙, PLC 동작(타이머, 자기유지, 히스테리시스)을 아두이노로 옮기는 방법이 정리되어 있습니다.
+두 가지 방법이 있습니다. 처음이라면 A부터 해 보세요.
+
+| | 방법 A: 채팅 (초급용) | 방법 B: Claude Code (중급용) |
+|---|---|---|
+| 도구 | claude.ai (ChatGPT, Gemini도 가능) + Arduino IDE | VS Code + Claude Code |
+| 하는 일 | AI가 코드를 주면 내가 복사해서 업로드 | AI가 코드 작성, 컴파일, 업로드까지 직접 |
+| 오류가 나면 | 오류 메시지를 복사해서 AI에게 붙여 넣기 | AI가 스스로 고침 |
+| 요금 | 무료 요금제로 시작 가능 | Claude 유료 요금제(Pro 이상) |
+| 추천 | 처음 시작하는 사람 | 여러 기능을 만들어 보고 싶은 학생, 실무자 |
+
+### 방법 A: claude.ai 채팅으로 하기 (초급용, 가장 쉬움)
+
+**처음 한 번 준비**
+
+1. [Arduino IDE 2](https://www.arduino.cc/en/software)를 설치합니다.
+2. **보드 매니저**에서 `esp32 by Espressif Systems`(3.0 이상)를 설치합니다. i2r-03 온습도 센서를 쓰려면 **라이브러리 매니저**에서 `Adafruit AHTX0`도 설치합니다.
+3. **툴** 메뉴에서 보드 설정을 아래처럼 맞춥니다. (세 보드 모두 같음)
+
+| 툴 메뉴 | 값 |
+|---|---|
+| 보드 | ESP32 Dev Module |
+| Flash Size | 8MB (64Mb) |
+| Partition Scheme | Huge APP (3MB No OTA/1MB SPIFFS) |
+
+**AI에게 말하기**
+
+[claude.ai](https://claude.ai)를 열고 아래 문장을 복사해서 붙여 넣은 뒤, 보드 이름과 마지막 줄만 내 것으로 바꿉니다.
+
+```
+나는 i2r-03 PLC 보드를 가지고 있어.
+먼저 https://raw.githubusercontent.com/kdi6033/i2r-plc/main/AGENTS.md 를 읽고, 거기 적힌 핀과 규칙만 써서 아두이노 코드를 만들어 줘.
+나는 초보자니까 코드는 처음부터 끝까지 전체를 주고, 무엇을 하는 코드인지 쉽게 설명해 줘.
+
+만들고 싶은 것: 입력 1이 들어오면 출력 1을 켜고, 5초 뒤에 자동으로 꺼 줘.
+```
+
+**반복하기**
+
+1. 받은 코드를 Arduino IDE에 붙여 넣고 **업로드**합니다.
+2. 오류가 나면 **오류 메시지 전체를 복사해서** AI에게 붙여 넣습니다.
+3. 원하는 대로 동작하지 않으면 **어떻게 동작했는지** 구체적으로 말합니다. (예: "입력을 넣었는데 출력 2가 켜졌어")
+4. 잘 되면 다음 기능을 덧붙입니다. (예: "이제 입력 2를 누르면 바로 꺼지게 해 줘")
+
+> ChatGPT, Gemini에서도 같은 문장으로 쓸 수 있습니다. 주소를 읽지 못하는 AI라면 [AGENTS.md](AGENTS.md) 내용을 복사해서 함께 붙여 넣으세요.
+
+### 방법 B: Claude Code로 하기 (중급용, AI가 업로드까지)
+
+내가 설치하는 것은 **Git, VS Code, Claude Code 확장** 3개뿐입니다. 빈 폴더를 VS Code로 열고 Claude에게 아래처럼 말하면, 저장소 내려받기와 컴파일 도구·라이브러리 설치까지 Claude가 합니다.
+
+```
+https://github.com/kdi6033/i2r-plc 저장소를 이 폴더에 내려받고,
+그 안의 CLAUDE.md를 읽은 다음 i2r PLC 개발 환경을 만들어 줘.
+```
+
+그다음부터는 Claude가 [CLAUDE.md](CLAUDE.md)를 읽고 **코드 작성, 컴파일, 업로드, 시리얼 확인**까지 직접 합니다.
+나는 원하는 동작을 말하고, 보드가 어떻게 동작했는지 알려 주기만 하면 됩니다.
+
+```
+나: "i2r-03이야. 온도가 30도를 넘으면 출력 1을 켜고, 입력 1을 누르면 강제로 꺼 줘"
+Claude: 프로그램 작성 → 컴파일 → "출력 1에 무엇이 연결되어 있나요?" → 업로드 → "릴레이가 켜졌나요?"
+```
+
+내가 만든 프로그램은 `my_sketches/` 폴더에 저장됩니다. 이 폴더는 GitHub에 올라가지 않고, 저장소를 업데이트해도 그대로 남습니다.
+
+### 🔄 새 내용이 추가되면 (최신 내용 받기)
+
+- **Claude Code (방법 B)**: 처음에 열었던 폴더를 VS Code로 열고 Claude에게 "저장소를 최신으로 업데이트해 줘"라고 말합니다.
+- **채팅 (방법 A)**: 할 일이 없습니다. AI가 매번 GitHub의 최신 AGENTS.md를 읽습니다.
+
+## 예제
+
+| 예제 | 보드 | 내용 |
+|---|---|---|
+| [i2r02_output_blink](examples/i2r02_output_blink/) | i2r-02 | 출력 1~4를 차례로 1초씩 켜기 |
+| [i2r02_input_to_output](examples/i2r02_input_to_output/) | i2r-02 | 입력이 들어오면 같은 번호의 출력 켜기 |
+| [i2r03_output_blink](examples/i2r03_output_blink/) | i2r-03 | 출력 1~4를 차례로 1초씩 켜기 |
+| [i2r03_input_to_output](examples/i2r03_input_to_output/) | i2r-03 | 입력이 들어오면 같은 번호의 출력 켜기 |
+| [i2r03_input_timer](examples/i2r03_input_timer/) | i2r-03 | IN1을 넣으면 OUT1을 5초 켜기 (타이머) |
+| [i2r03_temp_relay](examples/i2r03_temp_relay/) | i2r-03 | 30도 이상이면 OUT1 켜고 28도 이하면 끄기 |
+| [i2r04_output_blink](examples/i2r04_output_blink/) | i2r-04 | 출력 1~8을 차례로 1초씩 켜기 |
+| [i2r04_input_to_output](examples/i2r04_input_to_output/) | i2r-04 | 입력이 들어오면 같은 번호의 출력 켜기 |
+
+모든 예제는 esp32 보드 패키지 3.3.x에서 컴파일을 확인했습니다.
+
+## 공식 펌웨어로 되돌리기
+
+내 프로그램을 올리면 공식 i2r 펌웨어(스마트폰 앱, MQTT 원격 제어)가 덮어써집니다. 다시 쓰려면 [i2r.link](https://i2r.link)에서 펌웨어를 다시 설치합니다. 펌웨어 파일은 [download](https://github.com/kdi6033/download) 저장소에도 있습니다.
+
+## 문서
+
+| 문서 | 내용 |
+|---|---|
+| [AGENTS.md](AGENTS.md) | AI용 안내서: 보드, 핀 맵, 규칙, 컴파일과 업로드 방법, 문제 해결 |
+| [boards/](boards/) | 보드별 사양, 핀 맵, 단자 그림 |
+| [examples/](examples/) | 보드별 예제 |
+| [i2r 프로토콜](https://github.com/kdi6033/i2r/blob/main/README.md) | MQTT 토픽과 JSON 명령 형식 |
+
+> AI 도구별 안내 파일: Claude Code는 [CLAUDE.md](CLAUDE.md), Codex·Cursor 등은 [AGENTS.md](AGENTS.md), 웹 채팅 AI는 [llms.txt](llms.txt)를 읽습니다. 내용은 모두 AGENTS.md를 기준으로 합니다.
+
+---
+
+[🌐 i2r.link](https://i2r.link) · [🛒 제품 구매](https://i2r.link/products) · [▶️ YouTube](https://www.youtube.com/@i2r-link) · [💻 GitHub](https://github.com/kdi6033)

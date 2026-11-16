@@ -1,0 +1,19 @@
+# 비밀 값 (Wi-Fi 비밀번호, 이메일, 서버 주소) - 절대 GitHub에 올리지 않음
+secrets.h
+**/secrets.h
+
+# 내가 만든 스케치 (예제 hello_plc만 저장소에 둠)
+my_sketches/*
+!my_sketches/hello_plc/
+
+# 빌드 결과물
+build/
+**/build/
+*.bin
+*.elf
+*.map
+
+# 편집기, OS
+.vscode/
+.DS_Store
+Thumbs.db
