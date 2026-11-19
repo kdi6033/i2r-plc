@@ -43,6 +43,8 @@ Wi-Fi, Bluetooth를 쓰는 ESP32 PLC입니다. 입력 4개, 릴레이 출력 4�
 FQBN = esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app
 ```
 
+라이브러리 매니저에서 **I2R_PLC**를 설치하고 `I2R_PLC plc(I2R_02);`로 씁니다. 핀 번호 없이 `plc.output(1, ON)`처럼 보드 번호로 씁니다.
+
 ## 예제
 
 - [i2r02_output_blink](../../examples/i2r02_output_blink/): 출력 1~4를 차례로 켜기

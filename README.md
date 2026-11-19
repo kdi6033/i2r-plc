@@ -60,7 +60,7 @@ AI에게 프로그램을 부탁할 때도 이 구조로 만들도록 [AGENTS.md]
 **처음 한 번 준비**
 
 1. [Arduino IDE 2](https://www.arduino.cc/en/software)를 설치합니다.
-2. **보드 매니저**에서 `esp32 by Espressif Systems`(3.0 이상)를 설치합니다. i2r-03 온습도 센서를 쓰려면 **라이브러리 매니저**에서 `Adafruit AHTX0`도 설치합니다.
+2. **보드 매니저**에서 `esp32 by Espressif Systems`(3.0 이상)를 설치합니다. **라이브러리 매니저**에서 `I2R_PLC`를 찾아 설치합니다. (i2r-03 온습도 센서도 이 라이브러리가 읽습니다)
 3. **툴** 메뉴에서 보드 설정을 아래처럼 맞춥니다. (세 보드 모두 같음)
 
 | 툴 메뉴 | 값 |
@@ -127,9 +127,25 @@ Claude: 프로그램 작성 → 컴파일 → "출력 1에 무엇이 연결되�
 | [i2r04_output_blink](examples/i2r04_output_blink/) | i2r-04 | 출력 1~8을 차례로 1초씩 켜기 |
 | [i2r04_input_to_output](examples/i2r04_input_to_output/) | i2r-04 | 입력이 들어오면 같은 번호의 출력 켜기 |
 
-모든 예제는 esp32 보드 패키지 3.3.x에서 컴파일을 확인했습니다.
+모든 예제는 [I2R_PLC 라이브러리](https://github.com/kdi6033/I2R_PLC)를 쓰고, esp32 보드 패키지 3.3.x에서 컴파일을 확인했습니다.
+핀 번호 없이 보드 이름만 고르고 `plc.output(1, ON)`처럼 보드에 인쇄된 번호로 씁니다.
 
-> 🛠️ **라이브러리 준비 중:** 핀 번호 없이 `plc.output(1, ON)`처럼 쓰는 [I2R_PLC 라이브러리](https://github.com/kdi6033/I2R_PLC)를 만들고 있습니다. 완성되면 예제를 라이브러리 방식으로 바꿉니다.
+```cpp
+#include <I2R_PLC.h>
+
+I2R_PLC plc(I2R_03);   // 내 보드: I2R_02, I2R_03, I2R_04
+
+void setup() {
+  plc.begin();
+}
+
+void loop() {
+  plc.update();                  // loop 맨 앞에서 매번
+  plc.output(1, plc.input(1));   // IN1이 들어오면 OUT1 켜기
+}
+```
+
+타이머(TON, TOF), 카운터, 깜빡임, 상태 알림 예제는 [I2R_PLC 예제](https://github.com/kdi6033/I2R_PLC/tree/main/examples)에 있습니다. Arduino IDE에서는 **파일 → 예제 → I2R_PLC**에서 열 수 있습니다.
 
 ## 공식 펌웨어로 되돌리기
 

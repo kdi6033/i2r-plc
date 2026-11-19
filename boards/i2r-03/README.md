@@ -50,7 +50,7 @@ Wi-Fi, Bluetooth를 쓰는 ESP32 PLC입니다. 입력 4개, 릴레이 출력 4�
 FQBN = esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app
 ```
 
-온습도 센서를 쓰려면 라이브러리 매니저에서 **Adafruit AHTX0**를 설치합니다.
+라이브러리 매니저에서 **I2R_PLC**를 설치하고 `I2R_PLC plc(I2R_03);`로 씁니다. 온습도 센서도 `plc.temperature()`, `plc.humidity()`로 읽습니다. (Adafruit AHTX0은 필요 없음)
 
 ## 예제
 

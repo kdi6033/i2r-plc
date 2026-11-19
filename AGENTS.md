@@ -26,13 +26,14 @@ i2r PLC는 **Wi-Fi로 원격 제어하는 것이 기본**이고, **Wi-Fi가 연�
 
 - `setup()`에서 Wi-Fi 연결을 `while (WiFi.status() != WL_CONNECTED)`처럼 **기다리지 않습니다.** `WiFi.begin()`만 하고 바로 넘어갑니다.
 - 다시 연결은 `millis()`로 5~10초마다 시도합니다. `delay()`로 기다리지 않습니다.
-- 출력은 **하나의 함수**(예: `setOutput(n, on)`)로만 바꿉니다. 입력 단자에서 온 제어와 MQTT 명령이 모두 이 함수를 부릅니다.
+- 출력은 **하나의 함수 `plc.output(n, on)`** 으로만 바꿉니다. 입력 단자에서 온 제어와 MQTT 명령이 모두 이 함수를 부릅니다. 출력이 바뀐 것을 서버에 알릴 때는 `plc.onOutputChange(함수)`를 씁니다.
 - Wi-Fi가 다시 연결되면 지금 입력과 출력 상태를 서버에 다시 보냅니다.
 - Wi-Fi가 끊겼다고 출력을 바꾸지 않습니다. 사용자가 "끊기면 꺼 줘"처럼 따로 말한 경우에만 그렇게 만듭니다.
 - 사용자가 Wi-Fi 없이 PLC 동작만 원하면 원격 제어 부분은 빼도 됩니다. 원격 제어를 더할 때도 PLC 제어 부분은 그대로 둡니다.
 
 ```cpp
 void loop() {
+  plc.update();     // 0) 입력 읽기, 예약된 출력 처리 (I2R_PLC 라이브러리)
   plcControl();     // 1) PLC 제어: 항상 먼저, Wi-Fi와 상관없이
   remoteControl();  // 2) 원격 제어: 연결돼 있을 때만 명령 처리, 끊겼으면 가끔 다시 연결
 }
@@ -60,6 +61,8 @@ void loop() {
 | 내장 LED | GPIO 2 |
 
 ## 2. 핀 맵
+
+> 프로그램은 **I2R_PLC 라이브러리**(5장)로 만들기 때문에 보통은 이 핀 번호를 쓸 일이 없습니다. 라이브러리가 보드 이름(`I2R_02`, `I2R_03`, `I2R_04`)에 맞춰 핀을 정합니다. 이 표는 배선 안내, 문제 해결, 라이브러리에 없는 기능을 만들 때 봅니다.
 
 출력은 모두 **HIGH = 릴레이 켜짐(ON)**, 입력은 **HIGH = 입력 들어옴(ON)** 입니다. (공식 펌웨어 기준)
 
@@ -119,20 +122,22 @@ FQBN = esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app
 
 | 라이브러리 | arduino-cli 설치 이름 | 언제 |
 |---|---|---|
-| Adafruit AHTX0 | `"Adafruit AHTX0"` | i2r-03 온습도 센서 |
+| **I2R_PLC** | `I2R_PLC` | **항상** (입력, 출력, 타이머, 카운터, i2r-03 온습도) |
 | PubSubClient | `PubSubClient` | MQTT 통신 |
 | ArduinoJson | `ArduinoJson` | MQTT 메시지(JSON) |
+
+- i2r-03 온습도 센서(AHT21)는 I2R_PLC가 직접 읽습니다. **Adafruit AHTX0은 설치하지 않아도 됩니다.**
 
 - 시리얼 속도: **115200**
 
 ## 4. 꼭 지킬 규칙
 
-1. **핀 번호는 2장 표에서 사용자의 보드에 맞는 것만** 씁니다. i2r-02/03과 i2r-04는 입력 핀이 다릅니다.
-2. 출력 핀은 `setup()`에서 `pinMode(핀, OUTPUT)` 다음에 **바로 `digitalWrite(핀, LOW)`** 로 꺼진 상태에서 시작합니다. 전원을 켜자마자 릴레이가 켜지면 연결된 장치가 갑자기 움직일 수 있습니다.
-3. 입력은 `pinMode(핀, INPUT)`으로 둡니다. 버튼 신호는 떨림(채터링)이 있으므로 **30~50ms 디바운스**를 넣습니다.
-4. **`delay()`로 오래 멈추지 않습니다.** PLC는 입력을 계속 보고 있어야 합니다. 타이머(TON, TOF), 깜빡임, 센서 주기는 `millis()`로 만듭니다. (예제 [examples/i2r03_input_timer](examples/i2r03_input_timer/) 참고)
+1. **I2R_PLC 라이브러리로 만듭니다.** `I2R_PLC plc(I2R_03);`처럼 사용자의 보드 이름을 넣고, 입력과 출력은 `plc.input(1)`, `plc.output(1, ON)`처럼 **보드에 인쇄된 번호(1부터)** 로 씁니다. 핀 번호, `pinMode`, `digitalRead`, `digitalWrite`로 입출력을 직접 다루지 않습니다.
+2. `setup()`에서 **`plc.begin()`**, `loop()` 맨 앞에서 **매번 `plc.update()`** 를 부릅니다. `begin()`이 모든 출력을 꺼진 상태로 시작하고, `update()`가 입력 떨림 제거(30ms), 자동 끄기, 깜빡임, 센서 읽기를 합니다.
+3. 입력이 **들어오는 순간**은 `plc.rising(n)`, **꺼지는 순간**은 `plc.falling(n)`으로 봅니다. 떨림 제거는 라이브러리가 하므로 따로 만들지 않습니다. 이 두 함수는 `update()` 한 번 동안만 `true`라서, 한 `loop()` 안에서 같은 번호를 여러 번 불러도 같은 값입니다.
+4. **`delay()`로 오래 멈추지 않습니다.** PLC는 입력을 계속 보고 있어야 합니다. 정해진 시간 켜기는 `plc.output(n, ON, 초)`, TON/TOF는 `plc.onDelay` / `plc.offDelay`, 깜빡임은 `plc.blink`로 만듭니다. 라이브러리에 없는 시간 동작만 `millis()`로 만듭니다.
 5. 같은 출력을 짧은 간격으로 계속 켜고 끄지 않습니다. 온도 제어처럼 기준값 근처에서 흔들리는 제어는 **히스테리시스**(예: 30도에서 켜고 28도에서 끄기)를 둡니다. 릴레이가 상하고 연결 장치에도 무리가 갑니다.
-6. 온습도 센서는 **2초에 한 번** 정도만 읽습니다. 센서를 찾지 못해도 `while(1)`로 멈추지 말고, 시리얼에 알린 뒤 나머지 PLC 동작은 계속합니다.
+6. 온습도는 `plc.temperature()`, `plc.humidity()`로 읽습니다. (라이브러리가 2초마다 읽어 둠) 센서를 찾지 못하면 `plc.sensorOk()`가 `false`이고 값은 `NAN`입니다. `while(1)`로 멈추지 말고, 시리얼에 알린 뒤 나머지 PLC 동작은 계속합니다. 온습도 센서는 **i2r-03에만** 있습니다.
 7. **Wi-Fi 비밀번호, 이메일, 서버 주소는 `secrets.h`에 따로 두고** 스케치에서 `#include "secrets.h"`로 불러옵니다. `secrets.h`는 `.gitignore`에 들어 있어 GitHub에 올라가지 않습니다. 비밀 값을 코드에 직접 쓰거나 시리얼로 출력하지 않습니다.
 8. **NVS(보드 저장 공간)를 통째로 지우지 않습니다.** `nvs_flash_erase()`를 쓰지 않습니다. 값을 저장하려면 `Preferences`로 `my`로 시작하는 새 이름을 씁니다. 예: `prefs.begin("myplc", false);`
 9. MQTT를 쓸 때 메시지는 **JSON**으로 하고, 명령 형식은 [i2r 프로토콜](https://github.com/kdi6033/i2r/blob/main/README.md)을 따릅니다. 새 형식을 마음대로 만들지 않습니다.
@@ -140,43 +145,69 @@ FQBN = esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app
 
 ## 5. 프로그램 모양 (이 틀에서 시작)
 
-i2r-03 예시입니다. 다른 보드는 2장 표에 맞춰 핀 배열만 바꿉니다.
+[I2R_PLC 라이브러리](https://github.com/kdi6033/I2R_PLC)를 씁니다. Arduino IDE 라이브러리 매니저에서 `I2R_PLC`로 찾아 설치합니다. (arduino-cli: `arduino-cli lib install I2R_PLC`)
+보드 이름만 사용자의 보드로 바꾸면 세 보드 모두 같은 코드입니다.
 
 ```cpp
-// i2r-03 기본 틀: 출력 4개, 입력 4개
-const int OUT_PINS[4] = {26, 27, 32, 33};   // OUT1~OUT4 (HIGH = 릴레이 켜짐)
-const int IN_PINS[4]  = {16, 17, 18, 19};   // IN1~IN4  (HIGH = 입력 들어옴)
-const int LED_PIN = 2;
+// 기본 틀: 보드 이름만 내 보드로 (I2R_02, I2R_03, I2R_04)
+#include <I2R_PLC.h>
+
+I2R_PLC plc(I2R_03);
 
 void setup() {
   Serial.begin(115200);
-  for (int i = 0; i < 4; i++) {
-    pinMode(OUT_PINS[i], OUTPUT);
-    digitalWrite(OUT_PINS[i], LOW);         // 꺼진 상태에서 시작 (규칙 2)
-    pinMode(IN_PINS[i], INPUT);
-  }
-  pinMode(LED_PIN, OUTPUT);
+  plc.begin();                        // 핀 설정, 출력 모두 끄기, 센서 찾기
   Serial.println("i2r-03 PLC 시작");
 }
 
 void loop() {
-  // 예: IN1이 들어오면 OUT1을 켠다
-  bool in1 = digitalRead(IN_PINS[0]) == HIGH;
-  digitalWrite(OUT_PINS[0], in1 ? HIGH : LOW);
+  plc.update();                       // loop 맨 앞에서 매번
+  plc.output(1, plc.input(1));        // 예: IN1이 들어오면 OUT1 켜기
 }
 ```
 
-PLC에서 자주 쓰는 동작을 아두이노로 옮기는 방법입니다.
+**I2R_PLC 함수** (번호는 보드에 인쇄된 대로 1부터)
 
-| PLC 동작 | 아두이노에서 |
+| 함수 | 설명 |
 |---|---|
-| 접점 (A접점 / B접점) | `digitalRead(핀) == HIGH` / `== LOW` |
-| 코일 | `digitalWrite(핀, 상태)` |
-| 자기유지 회로 | `bool` 변수에 상태를 기억 (START로 켜고 STOP으로 끔) |
-| 상승 에지 (입력이 들어오는 순간) | 이전 상태를 기억했다가 `이전 == LOW && 지금 == HIGH` |
-| TON (ON 딜레이 타이머) | 입력이 들어온 시각을 `millis()`로 기억, 정한 시간이 지나면 출력 |
-| TOF (OFF 딜레이 타이머) | 입력이 꺼진 시각을 기억, 정한 시간 동안 출력 유지 |
-| 카운터 | 상승 에지마다 변수 +1 |
+| `plc.begin()` / `plc.update()` | `setup()`에서 한 번 / `loop()` 맨 앞에서 매번 |
+| `plc.type()`, `plc.board()` | 보드 이름 `"i2r-03"` / 보드 종류 `I2R_03` |
+| `plc.inputCount()`, `plc.outputCount()` | 입력, 출력 개수 (4 또는 8) |
+| `plc.output(n, ON)` / `plc.output(n, OFF)` | 출력 n 켜기 / 끄기. 없는 번호면 아무것도 안 하고 `false` |
+| `plc.output(n, ON, 초)` | 켜고 정한 시간(초) 뒤 자동으로 끄기. 그 전에 다시 부르면 처음부터 |
+| `plc.output(n, ON, 기다림초, 동작초)` | 기다린 뒤 켜고, 동작 시간 뒤 끄기 (동작초 0 = 켜 둠) |
+| `plc.toggle(n)`, `plc.allOff()` | 출력 반대로 / 모든 출력 끄기 |
+| `plc.outputState(n)` | 출력 n이 켜져 있으면 `true` |
+| `plc.blink(n, 켜짐ms, 꺼짐ms)` | 계속 깜빡이기. `plc.output(n, OFF)`로 멈춤 |
+| `plc.remain(n)` | 자동 끄기/늦게 켜기까지 남은 초 |
+| `plc.input(n)` | 입력 n이 들어와 있으면 `true` (떨림 제거됨) |
+| `plc.rising(n)` / `plc.falling(n)` | 입력 n이 막 들어온 / 막 꺼진 순간에만 `true` |
+| `plc.setDebounce(ms)` | 떨림 제거 시간 바꾸기 (기본 30ms) |
+| `plc.onDelay(n, ms)` | TON: 입력 n이 ms 동안 계속 들어와 있으면 `true` |
+| `plc.offDelay(n, ms)` | TOF: 입력 n이 들어와 있는 동안, 그리고 꺼진 뒤 ms 동안 `true` |
+| `plc.count(n)` / `plc.resetCount(n)` | CTU: 입력 n이 들어온 횟수 / 0으로 |
+| `plc.onOutputChange(함수)` | 출력이 실제로 바뀔 때마다 `함수(n, on)` 호출 (원격 상태 알림용) |
+| `plc.inputBits()`, `plc.outputBits()`, `plc.outputBits(값)` | 모든 입력/출력을 숫자 하나로 (bit0 = 1번) / 출력 한꺼번에 바꾸기 |
+| `plc.inputText()`, `plc.outputText()` | `"0101"` 문자 (맨 왼쪽이 1번) |
+| `plc.led(ON)`, `plc.button()` | 내장 LED / 공장 초기화 버튼이 눌려 있으면 `true` |
+| `plc.temperature()`, `plc.humidity()`, `plc.sensorOk()` | i2r-03 온도(℃), 습도(%), 센서를 찾았는지 |
+
+- 위 표에 없는 함수를 지어내지 않습니다. 필요한 기능이 없으면 이 함수들과 `millis()`로 만듭니다.
+- **번호 규칙**: 스케치에서는 늘 1부터(`plc.output(1)` = 보드의 OUT1) 씁니다. MQTT JSON(i2r 프로토콜)은 0부터라서 `"n":0`이 OUT1입니다. 원격 명령을 받을 때는 `plc.output(n + 1, ...)`처럼 바꿉니다.
+
+PLC에서 자주 쓰는 동작을 I2R_PLC로 옮기는 방법입니다.
+
+| PLC 동작 | I2R_PLC에서 |
+|---|---|
+| 접점 (A접점 / B접점) | `plc.input(n)` / `!plc.input(n)` |
+| 코일 | `plc.output(n, 상태)` |
+| 자기유지 회로 | `if (plc.rising(START)) plc.output(n, ON); if (plc.rising(STOP)) plc.output(n, OFF);` |
+| 상승 에지 / 하강 에지 | `plc.rising(n)` / `plc.falling(n)` |
+| TON (ON 딜레이 타이머) | `plc.onDelay(n, ms)` |
+| TOF (OFF 딜레이 타이머) | `plc.offDelay(n, ms)` |
+| 정해진 시간 켜기 (원숏) | `if (plc.rising(n)) plc.output(m, ON, 초);` |
+| 카운터 (CTU) | `plc.count(n) >= 목표` 이면 출력, `plc.resetCount(n)`으로 초기화 |
+| 플리커 (깜빡임) | `plc.blink(n, 켜짐ms, 꺼짐ms)` |
 
 ## 6. 참고할 예제
 
@@ -188,14 +219,15 @@ PLC에서 자주 쓰는 동작을 아두이노로 옮기는 방법입니다.
 | i2r02_input_to_output | i2r-02 | IN1~4가 들어오면 같은 번호의 OUT1~4 켜기 |
 | i2r03_output_blink | i2r-03 | 출력 1~4를 차례로 1초씩 켜기 |
 | i2r03_input_to_output | i2r-03 | IN1~4가 들어오면 같은 번호의 OUT1~4 켜기 |
-| i2r03_input_timer | i2r-03 | IN1을 누르면 OUT1을 5초 켜기 (`millis()` 타이머, 디바운스) |
+| i2r03_input_timer | i2r-03 | IN1을 누르면 OUT1을 5초 켜기 (`plc.rising`, `plc.output(n, ON, 초)`) |
 | i2r03_temp_relay | i2r-03 | 온도 30도 이상이면 OUT1 켜고 28도 이하면 끄기 (히스테리시스) |
 | i2r04_output_blink | i2r-04 | 출력 1~8을 차례로 1초씩 켜기 |
 | i2r04_input_to_output | i2r-04 | IN1~8이 들어오면 같은 번호의 OUT1~8 켜기 |
 
 웹에서 읽을 때는 raw 주소를 씁니다. 예: `https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_temp_relay/i2r03_temp_relay.ino`
 
-> I2R_PLC 라이브러리(보드 이름만 고르면 핀을 알아서 맞추는 라이브러리)를 준비하고 있습니다. 나오면 이 장과 예제를 라이브러리 방식으로 바꿉니다.
+모든 예제는 I2R_PLC 라이브러리를 씁니다. 다른 보드에서 쓰려면 `I2R_PLC plc(I2R_03);`의 보드 이름만 바꿉니다.
+자기유지(ToggleSwitch), TON(OnDelay), TOF(StairLight), 카운터(Counter), 깜빡임(BlinkOutput), 상태 알림(StateReport) 예제는 [I2R_PLC 라이브러리 예제](https://github.com/kdi6033/I2R_PLC/tree/main/examples)에 있습니다. 예: `https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/Counter/Counter.ino`
 
 ## 7. Claude Code / 터미널에서 직접 컴파일하고 올리기
 
@@ -218,7 +250,8 @@ arduino-cli version
 ```bash
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli lib install "Adafruit AHTX0" PubSubClient ArduinoJson
+arduino-cli lib update-index
+arduino-cli lib install I2R_PLC PubSubClient ArduinoJson
 ```
 
 **② 컴파일**
@@ -259,10 +292,11 @@ arduino-cli upload -p COM5 --fqbn esp32:esp32:esp32:FlashSize=8M,PartitionScheme
 | 포트가 안 보임 | ① **데이터 전송이 되는** USB-C 케이블인지 확인 (충전 전용 케이블은 포트가 안 보임) ② CH340 드라이버 설치 (Windows는 대부분 자동, 안 되면 WCH 공식 사이트의 CH341SER 드라이버) ③ 다른 USB 포트나 케이블로 바꿔 보기 |
 | 업로드 실패 (`Failed to connect`, `Timed out waiting for packet header`) | ① Arduino IDE 시리얼 모니터 등 다른 프로그램이 포트를 쓰고 있으면 닫기 ② 업로드 속도를 낮춰 다시 시도 (`--board-options UploadSpeed=115200`) ③ 그래도 안 되면 보드의 **BOOT 버튼을 누른 채** 업로드를 시작하고 `Connecting...`이 나오면 손을 뗌 |
 | i2r-04가 전원을 켜도 시작하지 않음 | IN5(GPIO 12)에 입력이 들어와 있는지 확인. 입력을 빼고 다시 켬 (2장 핀 주의 사항) |
-| 릴레이가 안 켜짐 | 핀 번호가 그 보드 것인지, `pinMode(핀, OUTPUT)`을 했는지 확인. USB 전원만으로 릴레이 여러 개를 동시에 켜면 전원이 부족할 수 있으니 DC 전원을 연결 |
-| 입력이 반대로 읽힘 | i2r-03은 COM 단자 배선(0V 또는 입력 전압)을, i2r-02/04는 접점 배선을 확인. 시리얼에 `digitalRead` 값을 찍어 사용자와 함께 확인한 뒤 코드의 비교를 맞춤. **i2r-02/04 입력에 전압을 넣어 시험하지 않음** (고장) |
-| `Adafruit_AHTX0.h: No such file` | 3장 표의 라이브러리를 설치 |
-| 온습도 센서를 못 찾음 (i2r-03) | `Wire.begin(21, 22)`를 불렀는지, 다른 코드가 GPIO 21, 22를 쓰고 있지 않은지 확인 |
+| 릴레이가 안 켜짐 | `I2R_PLC plc(...)`의 보드 이름이 실제 보드와 같은지, `plc.begin()`과 `plc.update()`를 불렀는지 확인. 시리얼에 `[I2R_PLC] OUT5은(는) i2r-03에 없습니다` 같은 알림이 나오면 그 보드에 없는 출력 번호를 쓴 것. USB 전원만으로 릴레이 여러 개를 동시에 켜면 전원이 부족할 수 있으니 DC 전원을 연결 |
+| 자동 끄기, 깜빡임, `rising`이 동작하지 않음 | `loop()` 맨 앞에서 `plc.update()`를 매번 부르는지, `loop()` 안에 긴 `delay()`가 없는지 확인 |
+| 입력이 반대로 읽힘 | i2r-03은 COM 단자 배선(0V 또는 입력 전압)을, i2r-02/04는 접점 배선을 확인. 시리얼에 `plc.inputText()`를 찍어 사용자와 함께 확인. **i2r-02/04 입력에 전압을 넣어 시험하지 않음** (고장) |
+| `I2R_PLC.h: No such file` | 3장 표의 라이브러리를 설치 (`arduino-cli lib install I2R_PLC`, 또는 Arduino IDE 라이브러리 매니저에서 `I2R_PLC`) |
+| 온습도 센서를 못 찾음 (i2r-03) | 보드 이름이 `I2R_03`인지, 다른 코드가 GPIO 21, 22(I2C)를 쓰고 있지 않은지 확인. `plc.sensorOk()`로 확인 |
 | Wi-Fi 연결이 안 됨 | 2.4GHz 공유기인지 확인 (5GHz는 안 됨). `secrets.h`의 이름과 비밀번호 확인 |
 
 ## 9. 공식 펌웨어로 되돌리기

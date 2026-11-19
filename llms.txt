@@ -5,12 +5,14 @@
 AI가 코드를 만들기 전에 꼭 알아야 할 요약:
 
 - 먼저 보드가 i2r-02, i2r-03, i2r-04 중 무엇인지 확인한다. 핀이 다르다.
-- 출력(릴레이, HIGH=켜짐): i2r-02/03 OUT1~4 = 26, 27, 32, 33 / i2r-04 OUT1~8 = 26, 27, 32, 33, 21, 22, 23, 25
+- 코드는 I2R_PLC 라이브러리(라이브러리 매니저 `I2R_PLC`)로 만든다: `#include <I2R_PLC.h>`, `I2R_PLC plc(I2R_03);`, setup()에서 `plc.begin()`, loop() 맨 앞에서 `plc.update()`. 입출력은 보드 번호(1부터)로 `plc.input(1)`, `plc.output(1, ON)`, `plc.output(1, ON, 5)`(5초 뒤 끄기), `plc.rising(1)`, `plc.onDelay(1, ms)`(TON), `plc.offDelay(1, ms)`(TOF), `plc.count(1)`(CTU), `plc.blink(1, on, off)`, `plc.temperature()`. 함수 전체 목록은 AGENTS.md 5장. pinMode/digitalWrite로 직접 다루지 않는다.
+- 핀 맵(배선·문제 해결용, 라이브러리가 알아서 맞춤). 출력(릴레이, HIGH=켜짐): i2r-02/03 OUT1~4 = 26, 27, 32, 33 / i2r-04 OUT1~8 = 26, 27, 32, 33, 21, 22, 23, 25
 - 입력(HIGH=들어옴): i2r-02/03 IN1~4 = 16, 17, 18, 19 / i2r-04 IN1~8 = 18, 19, 4, 5, 12, 13, 14, 15
-- i2r-03 온습도 센서 AHT21: I2C SDA 21, SCL 22, 라이브러리 Adafruit AHTX0. 내장 LED는 세 보드 모두 GPIO 2.
+- i2r-03 온습도 센서 AHT21: I2C SDA 21, SCL 22, I2R_PLC가 직접 읽는다(Adafruit AHTX0 필요 없음). 내장 LED는 세 보드 모두 GPIO 2.
 - i2r-02/04 입력은 무전압 접점이다. 입력 단자에 전압을 넣으면 고장 난다. i2r-03 입력은 COM을 쓰는 전압 입력이다.
 - i2r-04의 IN5(GPIO 12)는 부팅 설정 핀이라 전원을 켤 때 입력이 들어와 있으면 부팅이 안 될 수 있다. i2r-04는 GPIO 21, 22가 출력이라 I2C 기본 핀을 쓸 수 없다.
-- 출력은 setup()에서 LOW로 시작한다. delay()로 오래 멈추지 말고 millis()로 타이머를 만든다. 입력은 30~50ms 디바운스, 온도 제어는 히스테리시스.
+- plc.begin()이 출력을 모두 끄고 시작하고, plc.update()가 입력 떨림 제거(30ms)를 한다. delay()로 오래 멈추지 않는다. 온도 제어는 히스테리시스.
+- 번호: 스케치는 1부터(plc.output(1)=OUT1), MQTT JSON(i2r 프로토콜)은 0부터("n":0=OUT1).
 - 보드: ESP32 Dev Module, Flash 8MB, Partition "Huge APP (3MB No OTA/1MB SPIFFS)". FQBN esp32:esp32:esp32:FlashSize=8M,PartitionScheme=huge_app. Serial 115200.
 - 제작 콘셉트: Wi-Fi 원격 제어가 기본이지만, Wi-Fi가 끊겨도 혼자(stand alone) PLC로 동작해야 한다. loop()에서 PLC 제어를 항상 먼저 실행하고, Wi-Fi/MQTT는 연결을 기다리며 멈추지 않고 millis()로 가끔 다시 연결한다. 출력은 입력과 원격 명령이 같은 함수로 바꾼다.
 - Wi-Fi 비밀번호와 이메일은 secrets.h에 둔다. MQTT 메시지는 JSON, 명령 형식은 i2r 프로토콜을 따른다.
@@ -33,6 +35,9 @@ AI가 코드를 만들기 전에 꼭 알아야 할 요약:
 - [i2r-03 온도로 릴레이 제어](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r03_temp_relay/i2r03_temp_relay.ino)
 - [i2r-04 출력 차례로 켜기](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r04_output_blink/i2r04_output_blink.ino)
 - [i2r-04 입력을 출력으로](https://raw.githubusercontent.com/kdi6033/i2r-plc/main/examples/i2r04_input_to_output/i2r04_input_to_output.ino)
+
+- [I2R_PLC 라이브러리 README (함수표)](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/README.md)
+- I2R_PLC 예제: [ToggleSwitch 자기유지](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/ToggleSwitch/ToggleSwitch.ino), [OnDelay TON](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/OnDelay/OnDelay.ino), [StairLight TOF](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/StairLight/StairLight.ino), [Counter CTU](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/Counter/Counter.ino), [BlinkOutput 깜빡임](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/BlinkOutput/BlinkOutput.ino), [StateReport 상태 알림](https://raw.githubusercontent.com/kdi6033/I2R_PLC/main/examples/StateReport/StateReport.ino)
 
 ## Optional
 

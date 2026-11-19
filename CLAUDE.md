@@ -12,10 +12,10 @@
    1. `git --version`으로 Git 확인 (없으면 https://git-scm.com 설치를 안내)
    2. AGENTS.md 7장 ①로 arduino-cli 확인, 없으면 winget으로 설치 (Arduino IDE는 필요 없음)
    3. esp32 보드 패키지 설치 (오래 걸린다고 미리 알림)
-   4. 라이브러리 설치: "Adafruit AHTX0" PubSubClient ArduinoJson
-   5. `my_sketches/hello_plc` 컴파일로 확인
+   4. 라이브러리 설치: I2R_PLC PubSubClient ArduinoJson
+   5. `my_sketches/hello_plc`와 `examples/i2r03_output_blink`(I2R_PLC 확인) 컴파일로 확인
    6. 끝나면 "✅ 개발 환경 준비 완료"와 설치한 것 목록을 보여 주고, **어느 보드(i2r-02, i2r-03, i2r-04)인지** 묻고 USB로 연결하라고 안내
-2. **보드 확인**: 이번 대화에서 보드를 아직 모르면 먼저 묻습니다. 핀은 AGENTS.md 2장에서 그 보드 것만 씁니다.
+2. **보드 확인**: 이번 대화에서 보드를 아직 모르면 먼저 묻습니다. 코드는 I2R_PLC 라이브러리로 `I2R_PLC plc(I2R_03);`처럼 그 보드 이름을 넣어 만듭니다. (AGENTS.md 5장)
 3. **계획을 짧게 말하기**: 어떤 입력, 출력, 타이머, 센서를 쓸지 2~3줄로 말합니다. 비슷한 예제가 있으면 먼저 읽습니다.
 4. **스케치 만들기**: `my_sketches/<영문_이름>/<영문_이름>.ino`로 만듭니다. 이름은 영문 소문자와 `_`만 씁니다.
 5. **컴파일**: 성공할 때까지 스스로 고칩니다. 사용자에게 오류를 고쳐 달라고 하지 않습니다.
