@@ -8,6 +8,8 @@ i2r 전체 안내판(다른 키트, 작업 폴더, i2r 스킬)은 https://raw.gi
 
 ## Claude Code에서 일하는 순서
 
+> **휴대폰(웹)으로 제어하는 PLC**를 원하면("휴대폰으로 켜고 끄기", "스케줄", "입력 규칙", "온도로 팬 켜기를 화면에서 설정" 등) 보드가 웹서버가 되는 예제 **i2r-server `examples/standalone`** 을 바탕으로 만듭니다. 이 작업 폴더에 `i2r-server/`가 없으면 `git clone https://github.com/kdi6033/i2r-server`로 받고, `i2r-server/examples/standalone/CLAUDE.md`를 먼저 읽고 따릅니다. 만든 프로그램은 이 키트의 `my_sketches/` 안에 둡니다.
+
 사용자가 "~하는 PLC 프로그램을 만들어 줘"라고 하면 아래 순서로 진행합니다.
 
 1. **처음 한 번 환경 만들기**: 사용자가 "개발 환경을 만들어 줘"라고 하면 아래를 차례로 하고, 단계마다 한 줄로 알려 줍니다.
