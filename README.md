@@ -50,6 +50,10 @@ AI에게 프로그램을 부탁할 때도 이 구조로 만들도록 [AGENTS.md]
 
 ### 🤖 방법 A: Claude Code로 하기 (중급용, AI가 업로드까지)
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/kdi6033/i2r/main/images/claude-code-flow.svg" alt="Claude Code로 i2r 기기 AI 자동 코딩하기: 1. 처음 시작할 때 'https://github.com/kdi6033/i2r 읽고 i2r 개발을 도와줘' → 2. 새 기능이 나왔을 때 '저장소를 최신으로 업데이트해 줘' → 그다음부터는 말(음성·글)만 하면 AI가 코드 작성·컴파일·업로드까지 자동 실행" width="780" />
+</div>
+
 > [!TIP]
 > **🤖 Claude가 코드 작성부터 컴파일, 업로드, 시리얼 확인까지 직접 합니다.**
 > 나는 하고 싶은 동작을 **한 문장**으로 말하고, 보드가 어떻게 움직였는지 알려 주기만 하면 됩니다.
